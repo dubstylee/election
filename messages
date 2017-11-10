@@ -1,0 +1,25 @@
+Node messages:
+
+an initiator node will start an election:
+ELECTION <node id> <next node id> <node id>
+arg1: id of current node
+arg2: id of next hop
+arg3: id of current highest node
+
+all nodes will drop or pass election messages:
+if highest id < current node id, drop message
+if highest id == current node id, send leader message
+if highest id > current node id, forward message
+ELECTION <node id> <next node id> <highest id>
+
+if a node receives its own election message back:
+LEADER <node id> <next node id> <node id>
+arg1: id of current node
+arg2: id of next hop
+arg3: id of current node (highest node)
+
+other nodes will drop or pass leader messages:
+if leader id < current node id, something is wonky, drop message
+if leader id == current node id, election was successful, go to working
+if leader id > current node id, forward message
+LEADER <node id> <next node id> <leader id>
