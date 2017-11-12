@@ -21,7 +21,7 @@ class Node():
     # prev_id = 0
     initiator = False
     sent_id = False
-    state = Status.NONE
+    state = Status.MAIN
 
     def __init__(self, id, next_id):
         self.id = id
@@ -51,58 +51,68 @@ def on_message(client, userdata, msg):
 
     # we are only interested in messages that are sent to our node id
     if to_id == node.id:
+        print(msg.payload)
         leader = int(splits[5])
 
         if action == "ELECTION":
-            if node.status == Status.DECIDE:
+            if node.state == Status.DECIDE:
                 print("trying to decide")
-            elif node.status == Status.BOWOUT:
+            elif node.state == Status.BOWOUT:
                 node.send_id(leader)
-            elif node.status in [Status.ANNOUNCE, Status.WAITING,
+            elif node.state in [Status.ANNOUNCE, Status.WAITING,
                                  Status.WORKING, Status.IDLE]:
                 print("already had an election, cheating?")
-            else:  # node.status == Status.MAIN
-                node.status = Status.DECIDE
+            else:  # node.state == Status.MAIN
+                node.state = Status.DECIDE
                 if leader > node.id:
                     node.send_id(leader)
-                    node.status = Status.BOWOUT
+                    node.state = Status.BOWOUT
                 elif leader < node.id:
-                    node.status = Status.MAIN
+                    node.state = Status.MAIN
                 else:
-                    node.status = Status.ANNOUNCE
+                    node.state = Status.ANNOUNCE
                     node.send_leader(node.id)
-                    node.status = Status.WAITING
+                    node.state = Status.WAITING
 
         elif action == "LEADER":
-            if node.status in [Status.MAIN, Status.DECIDE, Status.WORKING,
+            if node.state in [Status.MAIN, Status.DECIDE, Status.WORKING,
                                Status.IDLE]:
                 # not in a state to accept leader message, cheating?
                 print("maybe cheating")
-            elif node.status == Status.BOWOUT:
+            elif node.state == Status.BOWOUT:
                 if leader > node.id:
-                    send_leader(leader)
-                    node.status == Status.WORKING:
+                    node.send_leader(leader)
+                    node.state = Status.WORKING
                 elif leader == node.id:
                     print("received invalid leader id")
-            elif node.status in [Status.ANNOUNCE, Status.WAITING]:
+            elif node.state in [Status.ANNOUNCE, Status.WAITING]:
                 if leader == node.id:
-                    print("i can haz ldr")
+                    print("%d sez 'i can haz ldr'" % node.id)
                 else:
                     print("should not receive multiple leaders")
 
 
 def main():
+    global node
     if len(sys.argv) != 3:
         print "Usage: node <id> <next_id>"
         exit_program()
 
-    node = Node(sys.argv[1], sys.argv[2])
+    node = Node(int(sys.argv[1]), int(sys.argv[2]))
     mqtt_client.will_set(mqtt_topic, "__WILL OF NODE %d__" % node.id, 0, False)
     mqtt_client.on_message = on_message
     mqtt_client.loop_start()
+    node_timeout = 5
+
+    if node.id % 2 == 0:
+        node.initiator = True
 
     while True:
+        if (node.initiator or node_timeout == 0) and node.state == Status.MAIN:
+            node.send_id(node.id)
+
         time.sleep(1)
+        node_timeout = node_timeout - 1
 
 
 if __name__ == "__main__":
