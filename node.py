@@ -6,19 +6,19 @@ import time
 
 
 class Status(Enum):
-    NONE = 0     # starting state
-    DECIDE = 0   # compare ids
-    BOWOUT = 0   # can't be leader
-    ANNOUNCE = 0 # sent leader message
-    WAITING = 0  # waiting to get leader message back
-    WORKING = 0  # election complete, working
-    IDLE = 0     # done working
+    MAIN = 0      # starting state
+    DECIDE = 1    # compare ids
+    BOWOUT = 2    # can't be leader
+    ANNOUNCE = 3  # sent leader message
+    WAITING = 4   # waiting to get leader message back
+    WORKING = 5   # election complete, working
+    IDLE = 6      # done working
 
 
 class Node():
     id = 0
     next_id = 0
-    prev_id = 0
+    # prev_id = 0
     initiator = False
     sent_id = False
     state = Status.NONE
@@ -28,10 +28,10 @@ class Node():
         self.next_id = next_id
 
     def send_id(self, id):
-        send_message("ELECTION %d %d %d" % (self.id, self.next_id, id))
+        send_message("ELECTION %d %d" % (self.next_id, id))
 
     def send_leader(self, id):
-        send_message("LEADER %d %d %d" % (self.id, self.next_id, id))
+        send_message("LEADER %d %d" % (self.next_id, id))
 
 
 node = None
@@ -46,43 +46,49 @@ signal.signal(signal.SIGINT, control_c_handler)
 
 def on_message(client, userdata, msg):
     splits = msg.payload.split(' ')
-    if splits[3] == "ELECTION":
-        if node.status in [Status.WORKING, Status.IDLE]:
-            print("already had an election, cheating?")
-        elif node.status == Status.BOWOUT:
-            print("bowout")
-            # if id is less than node.id, drop message
-        elif node.status in [Status.NONE, Status.DECIDE, Status.ANNOUNCE, Status.WAITING]:
-            print("do stuff here")
+    action = splits[3]
+    to_id = int(splits[4])
 
-        from_id = int(splits[4])
-        to_id = int(splits[5])
-        leader = int(splits[6])
+    # we are only interested in messages that are sent to our node id
+    if to_id == node.id:
+        leader = int(splits[5])
 
-        if node.prev_id == -1:
-            node.prev_id = from_id
-        elif node.prev_id != from_id:
-            send_message("CAUGHT CHEATER %d" % from_id)
-        else:
-            if leader > node.id:
+        if action == "ELECTION":
+            if node.status == Status.DECIDE:
+                print("trying to decide")
+            elif node.status == Status.BOWOUT:
                 node.send_id(leader)
-                node.status = Status.BOWOUT
-            elif leader < node.id:
-                send_message("dropping message")
-            else:
-                node.send_leader(node.id)
-                node.status = Status.ANNOUNCE
-                node.status = Status.WAITING
-    elif splits[3] == "LEADER":
-        if node.status in [Status.NONE, Status.DECIDE, Status.WORKING, Status.IDLE]:
-            # not in a state to accept leader message, cheating?
-            print("maybe cheating")
-        elif node.status == Status.BOWOUT:
-            print("id should be > node.id")
-        elif node.status == Status.ANNOUNCE:
-            print("might combine ANNOUNCE and WAITING")
-        elif node.status == Status.WAITING:
-            print("id should be == node.id")
+            elif node.status in [Status.ANNOUNCE, Status.WAITING,
+                                 Status.WORKING, Status.IDLE]:
+                print("already had an election, cheating?")
+            else:  # node.status == Status.MAIN
+                node.status = Status.DECIDE
+                if leader > node.id:
+                    node.send_id(leader)
+                    node.status = Status.BOWOUT
+                elif leader < node.id:
+                    node.status = Status.MAIN
+                else:
+                    node.status = Status.ANNOUNCE
+                    node.send_leader(node.id)
+                    node.status = Status.WAITING
+
+        elif action == "LEADER":
+            if node.status in [Status.MAIN, Status.DECIDE, Status.WORKING,
+                               Status.IDLE]:
+                # not in a state to accept leader message, cheating?
+                print("maybe cheating")
+            elif node.status == Status.BOWOUT:
+                if leader > node.id:
+                    send_leader(leader)
+                    node.status == Status.WORKING:
+                elif leader == node.id:
+                    print("received invalid leader id")
+            elif node.status in [Status.ANNOUNCE, Status.WAITING]:
+                if leader == node.id:
+                    print("i can haz ldr")
+                else:
+                    print("should not receive multiple leaders")
 
 
 def main():
