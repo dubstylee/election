@@ -6,6 +6,7 @@ class Gui(tk.Frame):
     part_a_text = None
     part_b_label = None
     part_b_text = None
+    part_a_label_text = None
     property_state = "valid"
     assert_state = "valid"    
 
@@ -40,7 +41,8 @@ class Gui(tk.Frame):
         self.property_status.pack()
 
     def update_label_a(self, text):
-        self.part_a_label.config(text=text)
+        self.part_a_label_text = self.part_a_label_text + "\n" + text
+        self.part_a_label.config(text=self.part_a_label_text)
 
     def update_part_a(self, text):
         self.part_a_text.insert(tk.END, text)
