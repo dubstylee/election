@@ -3,20 +3,7 @@ import signal
 import time
 
 properties = {"ELECT_LEADER": [["ELECTION 1 0", "send_id.0.1"],
-                               ["LEADER 1 2", "send_leader.1.2"]]}
-
-'''
-properties = {"GOOD" : [["GOSITDOWN 0", "phil[0].sitdown"],
-                        ["ARISE 0", "phil[0].arise"]]}
-'''
-
-'''
-properties = {"TESTING2": [["GOSITDOWN 0", "phil[0].sitdown"],
-                           ["ARISE 1", "phil[1].arise"]],
-              "EXTRA": [["GOSITDOWN 0", "phil[0].sitdown"],
-                        ["ARISE 1", "phil[1].arise"],
-                        ["GOSITDOWN 0", "phil[0].sitdown"]]}
-'''
+                               ["LEADER 1 2", "<> send_leader.1.2"]]}
 
 
 class Prop():
@@ -66,6 +53,8 @@ def on_message(client, userdata, msg):
                          (splits[0], splits[1], p.name, splits[3]))
             if actions[p.status][0] == splits[3]:
                 p.status = (p.status + 1) % len(p.alphabet)
+            elif "<>" in actions[p.status][1]:
+                print("ALPHABET ACTION SEEN, STILL WAITING FOR EVENTUALLY")
             else:
                 send_message("UPDATEB VIOLATION OF PROPERTY %s" % p.name)
 

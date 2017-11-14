@@ -78,14 +78,72 @@ class Ledison(tk.Frame):
 
 
 def on_message(client, userdata, msg):
-    print (msg.payload)
+    message = msg.payload
+    splits = message.split(' ')
+    action = splits[3]
+    if action in ["LABELA", "LABELB", "UPDATEA", "UPDATEB"]:
+        return
+    to_id = int(splits[4])
 
-    splits = msg.payload.split(' ')
+    # we are only interested in messages that are sent to our node id
+    if to_id == gui.id:
+        print(msg.payload)
 
-    # TODO: implement node message handling
+        if action == "ELECTION":
+            leader = int(splits[5])
+            if gui.state == Status.DECIDE:
+                print("trying to decide")
+            elif gui.state == Status.BOWOUT:
+                gui.send_id(leader)
+            elif gui.state in [Status.ANNOUNCE, Status.WAITING,
+                               Status.WORKING, Status.IDLE]:
+                print("already had an election, cheating?")
+            else:  # gui.state == Status.MAIN
+                gui.state = Status.DECIDE
+                if leader > gui.id:
+                    for i in range(0, 8):
+                        if i == 0:
+                            leds[i].write(ON)
+                        else:
+                            leds[i].write(OFF)
+                    gui.send_id(leader)
+                    gui.state = Status.BOWOUT
+                elif leader < gui.id:
+                    gui.state = Status.MAIN
+                    gui.send_id(gui.id)
+                else:
+                    gui.state = Status.ANNOUNCE
+                    gui.send_leader(gui.id)
+                    gui.state = Status.WAITING
+
+        elif action == "LEADER":
+            leader = int(splits[5])
+            if gui.state in [Status.MAIN, Status.DECIDE, Status.WORKING,
+                             Status.IDLE]:
+                # not in a state to accept leader message, cheating?
+                print("maybe cheating")
+            elif gui.state == Status.BOWOUT:
+                if leader > gui.id:
+                    gui.send_leader(leader)
+                    send_message("WORKING %d" % gui.id)
+                    gui.state = Status.WORKING
+                elif leader == gui.id:
+                    print("received invalid leader id")
+            elif gui.state in [Status.ANNOUNCE, Status.WAITING]:
+                if leader == gui.id:
+                    for i in range(0,8):
+                        if i < 3:
+                            leds[i].write(ON)
+                        else:
+                            leds[i].write(OFF)
+                    send_message("WORKING %d" % gui.id)
+                    gui.state = Status.WORKING
+                else:
+                    print("should not receive multiple leaders")
 
 
 def main():
+    global gui
     if len(sys.argv) != 3:
         print "Usage: ledison <id> <next_id>"
         exit_program()
@@ -111,6 +169,9 @@ def main():
         leds.append(c)
         c.write(OFF)
 
+    # start election in contention
+    leds[0].write(ON)
+    leds[1].write(ON)
     root.mainloop()
     exit_program()
 
