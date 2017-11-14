@@ -45,16 +45,19 @@ signal.signal(signal.SIGINT, control_c_handler)
 
 
 def on_message(client, userdata, msg):
-    splits = msg.payload.split(' ')
+    message = msg.payload
+    splits = message.split(' ')
     action = splits[3]
+    if action in ["LABELA", "LABELB", "UPDATEA", "UPDATEB"]:
+        return
     to_id = int(splits[4])
 
     # we are only interested in messages that are sent to our node id
     if to_id == node.id:
         print(msg.payload)
-        leader = int(splits[5])
 
         if action == "ELECTION":
+            leader = int(splits[5])
             if node.state == Status.DECIDE:
                 print("trying to decide")
             elif node.state == Status.BOWOUT:
@@ -69,12 +72,14 @@ def on_message(client, userdata, msg):
                     node.state = Status.BOWOUT
                 elif leader < node.id:
                     node.state = Status.MAIN
+                    node.send_id(node.id)
                 else:
                     node.state = Status.ANNOUNCE
                     node.send_leader(node.id)
                     node.state = Status.WAITING
 
         elif action == "LEADER":
+            leader = int(splits[5])
             if node.state in [Status.MAIN, Status.DECIDE, Status.WORKING,
                                Status.IDLE]:
                 # not in a state to accept leader message, cheating?
@@ -82,12 +87,14 @@ def on_message(client, userdata, msg):
             elif node.state == Status.BOWOUT:
                 if leader > node.id:
                     node.send_leader(leader)
+                    send_message("WORKING %d" % node.id)
                     node.state = Status.WORKING
                 elif leader == node.id:
                     print("received invalid leader id")
             elif node.state in [Status.ANNOUNCE, Status.WAITING]:
                 if leader == node.id:
-                    print("%d sez 'i can haz ldr'" % node.id)
+                    send_message("WORKING %d" % node.id)
+                    node.state = Status.WORKING
                 else:
                     print("should not receive multiple leaders")
 
@@ -102,17 +109,16 @@ def main():
     mqtt_client.will_set(mqtt_topic, "__WILL OF NODE %d__" % node.id, 0, False)
     mqtt_client.on_message = on_message
     mqtt_client.loop_start()
-    node_timeout = 5
 
-    if node.id % 2 == 0:
+    if node.id == 2:
         node.initiator = True
 
-    while True:
-        if (node.initiator or node_timeout == 0) and node.state == Status.MAIN:
-            node.send_id(node.id)
-
+    if node.initiator and node.state == Status.MAIN:
         time.sleep(1)
-        node_timeout = node_timeout - 1
+        node.send_id(node.id)
+
+    while True:
+        time.sleep(0.5)
 
 
 if __name__ == "__main__":
