@@ -1,5 +1,6 @@
 import Tkinter as tk
 import sys
+import time
 from enum import Enum
 from shared import exit_program, mqtt_client, mqtt_topic, send_message, ON, OFF
 
@@ -71,11 +72,11 @@ class Ledison(tk.Frame):
         self.next_id = next_id
 
     def send_id(self, id):
-        time.sleep(0.5)
+        time.sleep(1)
         send_message("ELECTION %d %d" % (self.next_id, id))
 
     def send_leader(self, id):
-        time.sleep(0.5)
+        time.sleep(1)
         send_message("LEADER %d %d" % (self.next_id, id))
 
 
