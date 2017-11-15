@@ -71,9 +71,11 @@ class Ledison(tk.Frame):
         self.next_id = next_id
 
     def send_id(self, id):
+        time.sleep(0.5)
         send_message("ELECTION %d %d" % (self.next_id, id))
 
     def send_leader(self, id):
+        time.sleep(0.5)
         send_message("LEADER %d %d" % (self.next_id, id))
 
 
