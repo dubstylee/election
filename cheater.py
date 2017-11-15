@@ -71,64 +71,7 @@ def on_message(client, userdata, msg):
         return
     to_id = int(splits[4])
 
-    # we are only interested in messages that are sent to our node id
-    if to_id == node.id:
-        print(msg.payload)
-
-        if action == "ELECTION":
-            leader = int(splits[5])
-            if node.state == Status.DECIDE:
-                print("trying to decide")
-            elif node.state == Status.BOWOUT:
-                node.send_id(leader)
-            elif node.state in [Status.ANNOUNCE, Status.WAITING,
-                                Status.WORKING, Status.IDLE]:
-                print("already had an election, cheating?")
-            else:  # node.state == Status.MAIN
-                node.state = Status.DECIDE
-                if leader > node.id:
-                    if EDISON:
-                        for i in range(0, 8):
-                            if i == 0:
-                                leds[i].write(ON)
-                            else:
-                                leds[i].write(OFF)
-                    node.send_id(leader)
-                    node.state = Status.BOWOUT
-                elif leader < node.id:
-                    node.state = Status.MAIN
-                    node.send_id(node.id)
-                else:
-                    node.state = Status.ANNOUNCE
-                    node.send_leader(node.id)
-                    node.state = Status.WAITING
-
-        elif action == "LEADER":
-            leader = int(splits[5])
-            if node.state in [Status.MAIN, Status.DECIDE, Status.WORKING,
-                              Status.IDLE]:
-                # not in a state to accept leader message, cheating?
-                print("maybe cheating")
-            elif node.state == Status.BOWOUT:
-                if leader > node.id:
-                    node.send_leader(leader)
-                    send_message("WORKING %d" % node.id)
-                    node.state = Status.WORKING
-                elif leader == node.id:
-                    print("received invalid leader id")
-            elif node.state in [Status.ANNOUNCE, Status.WAITING]:
-                if leader == node.id:
-                    if EDISON:
-                        for i in range(0, 8):
-                            if i < 3:
-                                leds[i].write(ON)
-                            else:
-                                leds[i].write(OFF)
-                    send_message("WORKING %d" % node.id)
-                    node.state = Status.WORKING
-                else:
-                    print("should not receive multiple leaders")
-
+    # cheater cares not
 
 def main():
     global node
@@ -154,6 +97,7 @@ def main():
     #    node.send_id(node.id)
     node.send_id(node.id)
     node.send_leader(node.id)
+    node.status = Status.WORKING
 
     while True:
         time.sleep(0.5)
