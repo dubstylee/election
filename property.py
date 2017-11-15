@@ -2,7 +2,7 @@ from shared import exit_program, mqtt_client, mqtt_topic, send_message
 import signal
 import time
 
-properties = {"ELECT_LEADER": [["ELECTION 1 0", "send_id.0.1"],
+properties = {"ELECT_LEADER": [["ELECTION 1 0", "send_id.1.0"],
                                ["LEADER 1 2", "<> send_leader.1.2"]]}
 
 
