@@ -32,8 +32,8 @@ class Fluent():
     def checkFluent(self, message):
         split = message.split(" ")
         if split[3] == "ELECTION":
-            recepient = int(split[4])
-            if recepient == self.identifier:
+            sent_id = int(split[5])
+            if sent_id == self.identifier:
                 self.status = FluentStatus.ON
         elif split[3] == "LEADER":
             recipient = int(split[4])
