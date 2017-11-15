@@ -1,9 +1,13 @@
 from enum import Enum
-from shared import mqtt_client, mqtt_topic, send_message, exit_program
-import mraa
+from shared import mqtt_client, mqtt_topic, send_message, exit_program, ON, OFF
 import signal
 import sys
 import time
+
+EDISON = False
+
+if EDISON:
+    import mraa
 
 
 class Status(Enum):
@@ -37,18 +41,20 @@ class Node():
 
 node = None
 
-# set up leds
-leds = []
-for i in range(2, 10):
-	led = mraa.Gpio(i)
-	led.dir(mraa.DIR_OUT)
-	led.write(OFF)
-	leds.append(led)
+if EDISON:
+    # set up leds
+    leds = []
+    for i in range(2, 10):
+        led = mraa.Gpio(i)
+        led.dir(mraa.DIR_OUT)
+        led.write(OFF)
+        leds.append(led)
 
 
 def control_c_handler(signum, frame):
-    for i in range(0, 8):
-        leds[i].write(OFF)
+    if EDISON:
+        for i in range(0, 8):
+            leds[i].write(OFF)
     exit_program()
 
 
@@ -74,16 +80,17 @@ def on_message(client, userdata, msg):
             elif node.state == Status.BOWOUT:
                 node.send_id(leader)
             elif node.state in [Status.ANNOUNCE, Status.WAITING,
-                                 Status.WORKING, Status.IDLE]:
+                                Status.WORKING, Status.IDLE]:
                 print("already had an election, cheating?")
             else:  # node.state == Status.MAIN
                 node.state = Status.DECIDE
                 if leader > node.id:
-                    for i in range(0, 8):
-                        if i == 0:
-                            leds[i].write(ON)
-                        else:
-                            leds[i].write(OFF)
+                    if EDISON:
+                        for i in range(0, 8):
+                            if i == 0:
+                                leds[i].write(ON)
+                            else:
+                                leds[i].write(OFF)
                     node.send_id(leader)
                     node.state = Status.BOWOUT
                 elif leader < node.id:
@@ -97,7 +104,7 @@ def on_message(client, userdata, msg):
         elif action == "LEADER":
             leader = int(splits[5])
             if node.state in [Status.MAIN, Status.DECIDE, Status.WORKING,
-                               Status.IDLE]:
+                              Status.IDLE]:
                 # not in a state to accept leader message, cheating?
                 print("maybe cheating")
             elif node.state == Status.BOWOUT:
@@ -109,11 +116,12 @@ def on_message(client, userdata, msg):
                     print("received invalid leader id")
             elif node.state in [Status.ANNOUNCE, Status.WAITING]:
                 if leader == node.id:
-                    for i in range(0,8):
-                        if i < 3:
-                            leds[i].write(ON)
-                        else:
-                            leds[i].write(OFF)
+                    if EDISON:
+                        for i in range(0, 8):
+                            if i < 3:
+                                leds[i].write(ON)
+                            else:
+                                leds[i].write(OFF)
                     send_message("WORKING %d" % node.id)
                     node.state = Status.WORKING
                 else:
@@ -135,8 +143,9 @@ def main():
         node.initiator = True
 
     # start election in contention
-    leds[0].write(ON)
-    leds[1].write(ON)
+    if EDISON:
+        leds[0].write(ON)
+        leds[1].write(ON)
 
     if node.initiator and node.state == Status.MAIN:
         time.sleep(1)

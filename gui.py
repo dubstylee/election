@@ -6,9 +6,9 @@ class Gui(tk.Frame):
     part_a_text = None
     part_b_label = None
     part_b_text = None
-    part_a_label_text = None
+    part_a_label_text = ""
     property_state = "valid"
-    assert_state = "valid"    
+    assert_state = "valid"
 
     def __init__(self, master, assert_frame, property_frame):
         tk.Frame.__init__(self, master)
@@ -41,7 +41,9 @@ class Gui(tk.Frame):
         self.property_status.pack()
 
     def update_label_a(self, text):
-        self.part_a_label_text = self.part_a_label_text + "\n" + text
+        if self.part_a_label_text != "":
+            self.part_a_label_text = self.part_a_label_text + "\n"
+        self.part_a_label_text = self.part_a_label_text + text
         self.part_a_label.config(text=self.part_a_label_text)
 
     def update_part_a(self, text):
@@ -69,7 +71,7 @@ def on_message(client, userdata, msg):
     message = msg.payload
     splits = message.split(' ', 4)
     if splits[3] == "LABELA":
-        gui.update_label_a(splits[4]) 
+        gui.update_label_a(splits[4])
     elif splits[3] == "UPDATEA" and gui.assert_state == "valid":
         gui.update_part_a(splits[4])
     elif splits[3] == "LABELB":
