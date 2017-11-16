@@ -1,0 +1,7 @@
+python assertvalidity.py 0 &
+sleep 0.05
+python assertvalidity.py 1 &
+sleep 0.05
+python assertvalidity.py 2 &
+sleep 0.05
+python assertdontfool.py &

@@ -19,6 +19,8 @@ class FluentStatus(Enum):
 # monitoring the assert for
 assertParam = 0
 assertName = None
+assertDescription = ""
+fluent = None
 systemStatus = AssertStatus.BEGIN
 
 
@@ -42,13 +44,8 @@ class Fluent():
                 self.status = FluentStatus.OFF
 
 
-fluent = None
-
-
 def on_message(client, userdata, msg):
     global systemStatus
-    global assertParam
-    global fluent
     message = msg.payload
 
     # we are only interested in election/leader actions for this assert
@@ -68,9 +65,8 @@ def on_message(client, userdata, msg):
         send_message("UPDATEA %s : %s" % (assertName, message))
         split = message.split(" ")
         if "LEADER" == split[3]:
-            recepient = int(split[4])
-            if recepient == assertParam and systemStatus == AssertStatus.BEGIN:
-                print "Reporting error"
+            recipient = int(split[4])
+            if recipient == assertParam and systemStatus == AssertStatus.BEGIN:
                 systemStatus = AssertStatus.ERROR
                 send_message("UPDATEA %s : ASSERTFAILED" % assertName)
 
@@ -78,6 +74,7 @@ def on_message(client, userdata, msg):
 def main():
     global assertParam
     global assertName
+    global assertDescription
     global fluent
 
     if len(sys.argv) < 2:
@@ -91,9 +88,10 @@ def main():
     mqtt_client.will_set(mqtt_topic, "Will of Asserter\n\n", 0, False)
     mqtt_client.loop_start()
 
-    assertName = "(!send_leader[%d][k:IDS] W send_id[%d][k:IDS])" % \
+    assertName = "VALID%d" % assertParam
+    assertDescription = "(!send_leader[%d][k:IDS] W send_id[%d][k:IDS])" % \
                  (assertParam, assertParam)
-    send_message("LABELA %s" % assertName)
+    send_message("LABELA assert %s = %s" % (assertName, assertDescription))
 
     while True:
         time.sleep(1)
