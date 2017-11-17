@@ -35,6 +35,8 @@ def control_c_handler(signum, frame):
         actions = p.alphabet
         if "<>" in actions[p.status][1]:
             send_message("UPDATEB VIOLATION OF PROPERTY %s" % p.name)
+        else:
+            send_message("UPDATEB %s EXITING GRACEFULLY" % p.name)
     exit_program()
 
 
