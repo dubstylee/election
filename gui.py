@@ -19,7 +19,8 @@ class Gui(tk.Frame):
 
     def part_a(self):
         # part A Abhishek assert
-        self.part_a_label = tk.Label(self.assert_frame, text="")
+        self.part_a_label = tk.Label(self.assert_frame, text="",
+                                     font=(None, 20))
         self.part_a_label.pack()
         self.part_a_text = tk.Listbox(self.assert_frame, width=200)
         self.part_a_text.pack()
@@ -31,7 +32,7 @@ class Gui(tk.Frame):
     def part_b(self):
         # part B Brian property
         self.part_b_label = tk.Label(self.property_frame,
-                                     text="")
+                                     text="", font=(None, 15))
         self.part_b_label.pack()
         self.part_b_text = tk.Listbox(self.property_frame, width=200)
         self.part_b_text.pack()
