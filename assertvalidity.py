@@ -66,7 +66,8 @@ def on_message(client, userdata, msg):
         split = message.split(" ")
         if "LEADER" == split[3]:
             recipient = int(split[4])
-            if recipient == assertParam and systemStatus == AssertStatus.BEGIN:
+            leader = int(split[5])
+            if leader == assertParam and systemStatus == AssertStatus.BEGIN:
                 systemStatus = AssertStatus.ERROR
                 send_message("UPDATEA %s : ASSERTFAILED" % assertName)
 
