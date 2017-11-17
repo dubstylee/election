@@ -31,6 +31,10 @@ for p in properties:
 
 
 def control_c_handler(signum, frame):
+    for p in property_list:
+        actions = p.alphabet
+        if "<>" in actions[p.status][1]:
+            send_message("UPDATEB VIOLATION OF PROPERTY %s" % p.name)
     exit_program()
 
 
